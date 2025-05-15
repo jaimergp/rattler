@@ -1,7 +1,9 @@
 from __future__ import annotations
+
 import os
-from typing import List, Optional, TYPE_CHECKING
 import datetime
+import warnings
+from typing import TYPE_CHECKING
 
 from rattler import VersionWithSource
 from rattler.match_spec.match_spec import MatchSpec
@@ -11,6 +13,8 @@ from rattler.platform.platform import Platform
 from rattler.rattler import PyRecord
 
 if TYPE_CHECKING:
+    from typing import List, Optional
+
     import networkx as nx
 else:
     try:
@@ -189,8 +193,8 @@ class PackageRecord:
         build: str,
         build_number: int,
         subdir: str | Platform,
-        arch: Optional[str],
-        platform: Optional[str],
+        arch: Optional[str] = None,
+        platform: Optional[str] = None,
         noarch: Optional[NoArchType] = None,
         depends: Optional[List[str]] = None,
         constrains: Optional[List[str]] = None,
@@ -206,9 +210,18 @@ class PackageRecord:
     ) -> None:
         # Convert Platform to str
         if isinstance(subdir, Platform):
+            if arch is not None:
+                warnings.warn(f"Overriding {arch=} with {subdir.arch}.")
             arch = str(subdir.arch)
+            if platform is not None:
+                warnings.warn(f"Overriding {platform=} with {subdir.only_platform}.")
             platform = subdir.only_platform
             subdir = str(subdir)
+        else:
+            if platform is None:
+                raise ValueError("'platform' is required if 'subdir' is not a Platform object")
+            if arch is None:
+                raise ValueError("'arch' is required if 'subdir' is not a Platform object")
 
         # convert str to PackageName
         if isinstance(name, str):
